@@ -61,7 +61,7 @@ JNIEXPORT jobject JNICALL Java_name_connolly_david_pgs_Render_getEventTimecode
 	 * Method:    render
 	 * Signature: (Lname/connolly/david/pgs/SubtitleEvent;Ljava/awt/image/BufferedImage;J)V
 	 */
-	JNIEXPORT void JNICALL Java_name_connolly_david_pgs_Render_render
+	JNIEXPORT jboolean JNICALL Java_name_connolly_david_pgs_Render_render
 	(JNIEnv *, jobject, jobject, jobject, jlong);
 	
 

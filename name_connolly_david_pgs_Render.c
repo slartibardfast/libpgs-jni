@@ -38,7 +38,7 @@ jclass buffered_image_cls;
 jmethodID set_rgb_id;
 jmethodID get_rgb_id;
 jclass subtitle_event_cls;
-jmethodID set_clip_id;
+jmethodID add_clip_id;
 
 ASS_Library* ass_library = NULL;
 ASS_Renderer* ass_renderer = NULL;
@@ -134,8 +134,8 @@ JNI_OnLoad(JavaVM *vm, void *reserved)
 		return JNI_ERR;
 	}
 	
-	set_clip_id = (*env)->GetMethodID(env, subtitle_event_cls, "setClip", "(IIII)V");
-	if (set_clip_id == NULL) {
+	add_clip_id = (*env)->GetMethodID(env, subtitle_event_cls, "addClip", "(IIII)V");
+	if (add_clip_id == NULL) {
 		return JNI_ERR;
 	}
 	
@@ -243,7 +243,7 @@ JNIEXPORT void JNICALL Java_name_connolly_david_pgs_Render_closeSubtitle
 JNIEXPORT jint JNICALL Java_name_connolly_david_pgs_Render_changeDetect
 (JNIEnv * env, jobject obj, jlong timecode)
 {
-	int changeDetect;
+	int changeDetect = 0;
 	
 	if (!is_subtitle_open()) {
 		throw_render_exception(env, "Subtitle Not Open");
@@ -283,11 +283,11 @@ JNIEXPORT jobject JNICALL Java_name_connolly_david_pgs_Render_getEventTimecode
 	return result;
 }
 
-JNIEXPORT void JNICALL Java_name_connolly_david_pgs_Render_render
+JNIEXPORT jboolean JNICALL Java_name_connolly_david_pgs_Render_render
 (JNIEnv * env, jobject obj, jobject event, jobject image, jlong timecode)
 {
 	int changeDetect;
-	bool rendered = false;
+	jboolean rendered = false;
 	int minX = 1920; // smallest dst_x // offset x
 	int maxX = 0; // largest dst_x + x
 	int minY = 1080; // smallest dst_y // offset y
@@ -323,8 +323,9 @@ JNIEXPORT void JNICALL Java_name_connolly_david_pgs_Render_render
 		}
         
         char *msg = calloc(512, sizeof(char));
-        sprintf(msg, "[debug] Set clip minX: %d, minY: %d, maxX: %d, maxY: %d\n", 
-                         minX, minY, maxX, maxY);
+        if (rendered) {
+            (*env)->CallVoidMethod(env, event, add_clip_id, minX, minY, maxX, maxY);
+        }
         sendRenderMessage(msg);    
 		
 		int x, y; 
@@ -356,12 +357,10 @@ JNIEXPORT void JNICALL Java_name_connolly_david_pgs_Render_render
 
 		p_img = p_img->next;
 	}
-	
-	if (rendered) {
-		(*env)->CallVoidMethod(env, event, set_clip_id, minX, minY, maxX, maxY);
-	}
 		
 	fflush(stdout);
+    
+    return rendered;
 }
 
 void throw_render_exception(JNIEnv *env, const char *msg) {
